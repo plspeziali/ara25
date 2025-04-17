@@ -154,7 +154,7 @@ def evaluate_track2(num_solutions, algorithm, graph, pareto_fronts, utility_func
         node_b = pareto_fronts[index]['target']
 
         current_time = time.time()
-        solutions = algorithm(graph, node_a, node_b)
+        solutions = algorithm(graph, node_a, node_b, utility_func, param_dict)
         total_time += time.time() - current_time
 
         if total_time > max_time:
