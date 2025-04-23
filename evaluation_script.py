@@ -18,6 +18,10 @@ def main():
 
     num_samples = 100000
 
+    # Parameters for track 2
+    num_solutions = 3
+    max_time = 5
+
     param_dict = {
         0: {'a_mean': 0.05, 'a_std': 0.01, 'b_mean': 150, 'b_std': 10},  # First cost
         1: {'a_mean': 0.1, 'a_std': 0.02, 'b_mean': 10, 'b_std': 2},  # Second cost (kept low)
@@ -25,7 +29,7 @@ def main():
         3: {'a_mean': 0.05, 'a_std': 0.01, 'b_mean': 100, 'b_std': 10}  # Fourth cost (similar to first)
     }
 
-    score2, time2 = evaluate_track2(5, pf_algorithm, graph, pareto_front[5:10], twopl_utility_func, param_dict, num_samples, 100000000)
+    score2, time2 = evaluate_track2(num_solutions, pf_algorithm, graph, pareto_front[5:10], twopl_utility_func, param_dict, num_samples, max_time)
 
     print(f"Score 2: {score2}, Time 2: {time2}")
 
@@ -128,13 +132,21 @@ def evaluate_track1(graph, pareto_fronts, algorithm):
                     pareto_found += 1
                     sol_found = True
                     break
-            # we check if one of the costs is less than the lowest cost in that position in the pareto front
+            # we check if the solution vector dominates all pareto front solutions in at least on point
             if not sol_found:
+                sol_cost = solution[0]
+                # assume pareto_list is a list of tuples (cost_vector, solution_object)
+
+                undominated = True
                 for pareto_cost, _ in pareto_list:
-                    # Check if candidate dominates cost
-                    if not all(c <= t for c, t in zip(solution[0], pareto_cost)) and any(c < t for c, t in zip(solution[0], pareto_cost)):
-                        pareto_found += 1
-                        print(f"Found a solution that is not in the pareto front: {solution[0]} vs {pareto_cost}")
+                    # check if this existing point dominates our candidate
+                    if (all(p <= s for p, s in zip(pareto_cost, sol_cost))
+                            and any(p < s for p, s in zip(pareto_cost, sol_cost))):
+                        undominated = False
+                        break
+
+                if undominated:
+                    pareto_found += 1
 
     return pareto_found, total_time
 
@@ -154,7 +166,7 @@ def evaluate_track2(num_solutions, algorithm, graph, pareto_fronts, utility_func
         node_b = pareto_fronts[index]['target']
 
         current_time = time.time()
-        solutions = algorithm(graph, node_a, node_b, utility_func, param_dict)
+        solutions = algorithm(graph, node_a, node_b, utility_func, param_dict, max_time)
         total_time += time.time() - current_time
 
         if total_time > max_time:
